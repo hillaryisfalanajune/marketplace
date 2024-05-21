@@ -40,6 +40,10 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+        'api' => [
+            'driver' => 'jwt',
+            'provider' => 'pembelis',
+        ],
     ],
 
     /*
@@ -94,7 +98,7 @@ return [
         'users' => [
             'provider' => 'users',
             'table' => 'password_reset_tokens',
-            'expire' => 60,
+            'expire' => 60 * 60 * 24,
             'throttle' => 60,
         ],
     ],
