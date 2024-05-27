@@ -14,6 +14,7 @@ class Rekening extends Model
         'no_rek',
         'nama_pemilik',
         'user_id', // tambahkan kolom user_id
+        'pesanan_id', // tambahkan kolom user_id
     ];
 
     public function user()

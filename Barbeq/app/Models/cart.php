@@ -19,7 +19,11 @@ class cart extends Model
         'penjual_id',
         'produk_id',
 
-
     ];
+    public function pembeli()
+    {
+        return $this->belongsTo(User::class,'penjual_id');
+    }
+ 
 
 }

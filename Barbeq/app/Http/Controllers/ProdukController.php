@@ -6,7 +6,7 @@ namespace App\Http\Controllers;
 use \Yajra\DataTables\DataTables;
 use App\Http\Controllers\Controller;
 // use Illuminate\Http\Request;
-use App\Models\Kategori;
+use App\Models\kategori;
 // use App\Models\Produk;
 
 use App\Models\Produk;
@@ -51,7 +51,7 @@ class ProdukController extends Controller
             'nama_produk' => 'required|max:200|min:5',
             'harga' => 'required',
             'stock' => 'required',
-            'gambar' => 'image|file|max:2048',
+            'gambar' => 'image|file|max:1024',
             'detail' => 'required',
             'kategori_id' => 'required',
         ]);
@@ -70,7 +70,6 @@ class ProdukController extends Controller
             $file = $request->file('gambar');
             $filename = time() . '.' . $request->gambar->extension();
             $file->move(public_path('../../public_html/produk-images'), $filename);
-
             $param['gambar'] = url('produk-images') . '/' . $filename;
         }
 
@@ -119,7 +118,7 @@ class ProdukController extends Controller
         if ($request->file('gambar')) {
             $file = $request->file('gambar');
             $filename = time() . '.' . $request->gambar->extension();
-            $file->move(public_path('produk-images'), $filename);
+            $file->move(public_path('../../public_html/produk-images'), $filename);
             $param['gambar'] = url('produk-images') . '/' . $filename;
         }
 
@@ -141,7 +140,11 @@ class ProdukController extends Controller
         return redirect('produk')->with('success', 'Produk Berhasil dihapus');
     }
 
-
+    public function show($id)
+    {
+        $produk = Produk::where('kode', $id)->first();
+        return view('produk.show', ['title' => 'Detail Produk', 'produk' => $produk]);
+    }
 
 
     public function fnGetData(Request $request)
@@ -186,26 +189,5 @@ class ProdukController extends Controller
             })
             ->rawColumns(['gambar', 'action'])
             ->make(true);
-    }
-    
-     public function getByCategory(Request $request)
-    {
-        $categoryId = $request->query('kategori_id');
-
-        try {
-            $products = Product::where('kategori_id', $categoryId)->get();
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Products fetched successfully',
-                'data' => $products
-            ], 200);
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Failed to fetch products',
-                'error' => $e->getMessage()
-            ], 500);
-        }
     }
 }

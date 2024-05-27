@@ -25,7 +25,7 @@ class RegisterController extends Controller
             'no_tlp' => 'required|min:6|max:15',
             'alamat' => 'required|min:6|max:500',
             // 'kode' => 'nullable|min:3',
-            'gambar' => 'required|image|mimes:jpg,jpeg,png|max:1024',
+            'gambar' => 'required|image|mimes:jpg,jpeg,png|max:5000',
             'isadmin' => '',
 
         ]);

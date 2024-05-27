@@ -55,6 +55,10 @@ class User extends Authenticatable
         return $this->hasMany(produk::class);
     }
 
+    public function kategori()
+    {
+        return $this->hasMany(Kategori::class);
+    }
     public function rekenings()
     {
         return $this->hasMany(Rekening::class);

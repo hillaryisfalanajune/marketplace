@@ -13,7 +13,7 @@ class ProdukController extends Controller
 {
    public function index()
 {
-    $data = Produk::select('produks.*', 'kategoris.nama_kategori')
+    $data = Produk::select('produks.*', 'kategoris.kategori')
                     ->join('kategoris', 'produks.kategori_id', '=', 'kategoris.id')
                     ->get();
 

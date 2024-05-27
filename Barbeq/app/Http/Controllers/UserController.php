@@ -23,7 +23,7 @@ class UserController extends Controller
 
     // Dapatkan data pengguna dengan pagination
     $users = $users->paginate(10);
-    return view('user.index', compact('users'));
+    return view('user.index',  ['title' => 'Manage User', 'users' => $users]);
 }
 
 

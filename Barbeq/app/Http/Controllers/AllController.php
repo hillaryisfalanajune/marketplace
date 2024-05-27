@@ -1,52 +1,29 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Bayar;
 use App\Models\Expedisi;
-use App\Models\Pesanan;
 use App\Models\Statusverifikasi;
 use App\Models\Rekening;
 use App\Models\User;
 use App\Models\Produk;
 use App\Models\Pembeli;
+use App\Models\Pesanan;
+use App\Models\Status;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Yajra\DataTables\Facades\DataTables;
 
-class PesananController extends Controller
+class AllController extends Controller
 {
-    public function index(Request $request)
+    public function index()
     {
-        $user = auth()->user();
-        $query = Pesanan::query();
+        $pesanans = Pesanan::with(['produk', 'pembeli', 'statusverifikasi', 'rekening', 'bayar','status','user','expedisi'])->get();
+        // $statusverifikasis = Statusverifikasi::all(); // Assuming you have a model named Statusverifikasi
+        // $statuss = Status::all(); // Assuming you have a model named Statusverifikasi
 
-        // Filter pesanan berdasarkan peran pengguna dan status pembayaran serta verifikasi
-      if ($user->isadmin) {
-    // Jika user adalah admin, tampilkan pesanan dengan bayar_id selain 1, seperti 2, 3, 4, dll
-    // serta statusverifikasi_id bernilai null, 0, atau 1
-    $query->where('bayar_id', '!=', 1)
-          ->where(function ($q) {
-              $q->whereNull('statusverifikasi_id')
-                ->orWhereIn('statusverifikasi_id', [0, 1]);
-          });
-} else {
-            // Jika user adalah user biasa, tampilkan pesanan dengan bayar_id 1 dan statusverifikasi_id 0 atau 1,
-            // atau pesanan dengan bayar_id 2 dan statusverifikasi_id 2
-            $query->where(function ($query) {
-                      $query->where('bayar_id', 1)
-                            ->whereIn('statusverifikasi_id', [0, 1]);
-                    })
-                    ->orWhere(function ($query) {
-                        $query->where('bayar_id', '!=', 1)
-                            ->where('statusverifikasi_id', 2);
-                    });
-        }
-
-        $pesanans = $query->with(['produk', 'pembeli', 'statusverifikasi', 'rekening', 'bayar','expedisi'])->get();
-
-        return view('pesanan.index', [
-            'title' => 'Pesanan',
+        return view('all.index', [
+            'title' => 'All Pesanan',
             'pesanans' => $pesanans,
             'pembelis' => Pembeli::all(),
             'statusverifikasis' => Statusverifikasi::all(),
@@ -54,8 +31,8 @@ class PesananController extends Controller
             'produks' => Produk::all(),
             'rekenings' => Rekening::all(),
             'bayars' => Bayar::all(),
-            'expedisis' => Expedisi::all(),
-
+            'statuss' => Status::all(),
+            'expedisi' => Expedisi::all()
         ]);
     }
 
@@ -66,36 +43,28 @@ class PesananController extends Controller
 
         // Validasi
         $validator = Validator::make($param, [
-            'gambar' => 'nullable|image|file|max:1024',
-            'harga' => 'required',
-            'jumlah_produk' => 'required',
-            'alamat' => 'required',
             'produk_id' => 'required',
             'pembeli_id' => 'required',
             'user_id' => 'required',
+            'harga' => 'required',
+            'jumlah_produk' => 'required',
+            'alamat' => 'required',
             'status_id' => 'exists:statuss,id',
             'bayar_id' => 'required',
+            // 'bayar_id' => '',
             'statusverifikasi_id' =>'exists:statusverifikasis,id',
             'rekening_id' => 'required',
             'expedisi_id' => 'required',
-
         ]);
 
         if ($validator->fails()) {
             return back()->withErrors($validator)->withInput();
         }
 
-        $pesanans = Pesanan::create($param);
+        $pesanan = Pesanan::create($param);
 
-        if ($request->hasFile('gambar')) {
-            $file = $request->file('gambar');
-            $filename = time() . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('bayar-images'), $filename);
-            $param['gambar'] = 'bayar-images/' . $filename;
-        }
-
-        if ($pesanans) {
-            return redirect('pesanan')->with('success', 'Pesanan Created');
+        if ($pesanan) {
+            return redirect('all')->with('success', 'Pesanan Created');
         }
 
         return back()->with('error', 'Oops, something went wrong!');
@@ -107,8 +76,13 @@ class PesananController extends Controller
 
         // Validasi
         $validator = Validator::make($param, [
+            'produk_id' => 'required',
+            'pembeli_id' => 'required',
+            'user_id' => 'required',
+            'status_id' => '',
             'bayar_id' => '',
-            'statusverifikasi_id' => ''
+            'statusverifikasi_id' => '',
+            'expedisi_id' => 'required',
         ]);
 
         if ($validator->fails()) {
@@ -118,12 +92,11 @@ class PesananController extends Controller
         $update = Pesanan::where('id', $id)->update($param);
 
         if ($update) {
-            return redirect('pesanan')->with('success', 'Pesanan Updated');
+            return redirect('all')->with('success', 'Pesanan Updated');
         }
 
         return back()->with('error', 'Pesanan not Updated');
     }
-
 
     public function updateStatusverifikasi(Request $request, $id)
     {
@@ -140,23 +113,43 @@ class PesananController extends Controller
         $pesanan->statusverifikasi_id = $request->statusverifikasi_id;
 
         if ($pesanan->save()) {
-            return redirect('pesanan')->with('success', 'Status verifikasi berhasil diperbarui');
+            return redirect('all')->with('success', 'Status verifikasi berhasil diperbarui');
         }
 
         return back()->with('error', 'Gagal memperbarui status verifikasi');
     }
 
+    public function updateStatus(Request $request, $id)
+    {
+        // Validasi
+        $validator = Validator::make($request->all(), [
+            'status_id' => 'required|exists:statuss,id'
+        ]);
+
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput();
+        }
+
+        $pesanan = Pesanan::findOrFail($id);
+        $pesanan->status_id = $request->status_id;
+
+        if ($pesanan->save()) {
+            return redirect('all')->with('success', 'Status  berhasil diperbarui');
+        }
+
+        return back()->with('error', 'Gagal memperbarui status ');
+    }
 
     public function destroy($id)
     {
         Pesanan::where('id', $id)->delete();
-        return redirect('pesanan')->with('success', 'Pesanan Berhasil dibatalkan');
+        return redirect('all')->with('success', 'Pesanan Berhasil dibatalkan');
     }
 
     public function show($id)
     {
-        $pesanan = Pesanan::with(['produk', 'pembeli', 'statusverifikasi', 'user', 'bayar','expedisi'])->findOrFail($id);
-        return view('pesanan.show', ['title' => 'Detail Pesanan', 'pesanan' => $pesanan]);
+        $pesanan = Pesanan::with(['produk', 'pembeli', 'statusverifikasi', 'user', 'bayar', 'status', 'expedisi',])->findOrFail($id);
+        return view('all.show', ['title' => 'Detail Pesanan', 'pesanan' => $pesanan]);
     }
 
     public function fnGetData(Request $request)

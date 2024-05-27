@@ -12,29 +12,6 @@ class Statusverifikasi extends Model
     protected $table ='statusverifikasis';
 
 
-    // public function scopeFilter($query, array $filters){
-
-    //     $query->when($filters['search'] ?? false,function($query,$search){
-    //         return
-    //         $query->where('id','like','%'. $search.'%')
-    //         ->orWhere('statusverifikasi','like','%'. $search.'%');
-    //     });
-
-
-    //     $query->when(
-    //         //author berasal dari url yang di kirim
-    //         $filters['author'] ?? false,
-    //         fn ($query,$author) =>
-    //         //author berasal dari relasi method public function author()
-    //         $query->whereHas('author',
-    //             fn($query) =>
-    //             $query->where('username', $author)
-    //         )
-
-    //     );
-
-    // }
-
    //Relasi tabel users ke posts 1 ke N
    public function pembeli(){
     return $this->hasMany(Pembeli::class);

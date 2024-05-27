@@ -8,40 +8,29 @@ use Illuminate\Database\Eloquent\Model;
 class Kategori extends Model
 {
     use HasFactory;
-    protected $guarded = ['id'];//tidak boleh manual diisi
+    protected $guarded = ['id'];
+    protected $table = "kategoris";
+    protected $fillable = [
+        'kode',
+       'kategori',
+        'user_id',
 
 
-    // public function scopeFilter($query, array $filters){
+    ];
 
-    //     $query->when($filters['search'] ?? false,function($query,$search){
-    //         return
-    //         $query->where('kode','like','%'. $search.'%')
-    //         ->orWhere('kategori','like','%'. $search.'%');
-    //     });
-
-
-    //     $query->when(
-    //         //author berasal dari url yang di kirim
-    //         $filters['author'] ?? false,
-    //         fn ($query,$author) =>
-    //         //author berasal dari relasi method public function author()
-    //         $query->whereHas('author',
-    //             fn($query) =>
-    //             $query->where('username', $author)
-    //         )
-
-    //     );
-
-    // }
 
     public function produk()
     {
         return $this->hasMany(produk::class);
     }
 
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 
 
-    //user ->oleh laravel user_id, ganti author_id
+      //user ->oleh laravel user_id, ganti author_id
     public function author()
     {
         //Post ke Categories Relasi satu ke satu
@@ -52,7 +41,7 @@ class Kategori extends Model
     {
         return $this->hasMany(Wishlist::class);
     }
-    
+
     public function getRouteKeyName()
     {
         return 'kode';

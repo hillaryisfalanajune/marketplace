@@ -18,8 +18,8 @@ class wishlist extends Model
         'id_wish',
         'user_id',
         'penjual_id'
-        
-        
+
+
 
     ];
     public function kategori()

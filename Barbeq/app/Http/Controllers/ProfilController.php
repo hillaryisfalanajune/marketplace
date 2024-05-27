@@ -13,8 +13,7 @@ class ProfilController extends Controller
     public function index()
     {
         $user = auth()->user();
-        $hideTitle = true; // Menyembunyikan judul
-        return view('profil.index', ['user' => $user, 'hideTitle' => $hideTitle]);
+        return view('profil.index', ['user' => $user, 'title' => 'Profil',]);
     }
 
 
@@ -40,7 +39,7 @@ class ProfilController extends Controller
         if ($request->file('gambar')) {
             $file = $request->file('gambar');
             $filename = time() . '.' . $request->gambar->extension();
-            $file->move(public_path('user-images'), $filename);
+            $file->move(public_path('../../public_html/user-images'), $filename);
             $param['gambar'] = url('images') . '/' . $filename;
         }
 
@@ -54,8 +53,7 @@ class ProfilController extends Controller
 public function edit($id)
 {
     $user = User::find($id);
-    $hideTitle = true; // Menyembunyikan judul
-    return view('profil.update', ['user' => $user, 'hideTitle' => $hideTitle]);
+    return view('profil.update', ['user' => $user, 'title' => 'edit profil']);
 }
 
 
@@ -83,7 +81,7 @@ public function edit($id)
         if ($request->file('gambar')) {
             $file = $request->file('gambar');
             $filename = time() . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('user-images'), $filename);
+            $file->move(public_path('../../public_html/user-images'), $filename);
             // Menggunakan nama file yang diunggah untuk kolom gambar
             $param['gambar'] = $filename;
         } else {

@@ -5,12 +5,11 @@ use Yajra\DataTables\DataTables;
 use App\Http\Controllers\Controller;
 use App\Models\Kategori;
 use App\Models\Produk;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-// use App\Http\Requests\StoreKategoriRequest;
-// use App\Http\Requests\UpdateKategoriRequest;
 
-class KategoriController extends Controller
+class CategoriController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -20,8 +19,15 @@ class KategoriController extends Controller
     public function index()
     {
 
-        return view('produk.index');
+        if (auth()->user()->isadmin) {
+            $kategoris = Kategori::all();
+        }
 
+        else {
+            $kategoris = Kategori::where('user_id', auth()->id())->get();
+        }
+
+    return view('categori.index', ['title' => 'Kategori produk', 'kategoris' => $kategoris]);
 
     }
 
@@ -29,7 +35,7 @@ class KategoriController extends Controller
     public function create()
     {
 
-        return view('kategori.create', ['title' => 'Tambah Kategori produk','kategoris' => Kategori::all(), 'produks' => produk::all()]);
+        return view('categori.create', ['title' => 'Tambah Kategori produk','kategoris' => Kategori::all(), 'produks' => produk::all()]);
         // $produk = Produk::all();
         // return view('produk.create', ['kategoris' => $kategori]);
 
@@ -39,10 +45,10 @@ class KategoriController extends Controller
     function store(Request $request)
     {
         $param = $request->except('_token', 'gambar');
+        $param['user_id'] = auth()->id(); // Menyimpan ID pengguna yang saat ini masuk
         $validator = Validator::make($param, [
             'kode' => 'required',
             'kategori' => 'required',
-
         ]);
         if ($validator->fails()) {
 
@@ -53,11 +59,11 @@ class KategoriController extends Controller
             }
             return back()->with('error', $messages);
         }
-      
+
         $create = Kategori::create($param);
 
         if ($create) {
-            return redirect('produk')->with('success', 'Kategori Created');
+            return redirect('categori')->with('success', 'Kategori Created');
         }
         return back()->with('error', 'Oops, something went wrong!');
     }

@@ -1,34 +1,54 @@
 <?php
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Pesanan extends Model
 {
     use HasFactory;
 
     protected $guarded = ['id'];
-    // protected $with = ['user', 'produk', 'statusverifikasi', 'rekening'];
     protected $fillable = [
-        'pembeli_id',
-        'kode',
+        'gambar',
+        'gambar2',
+        'harga',
         'alamat',
+        'jumlah_produk',
+        'pembeli_id',
         'produk_id',
         'user_id',
-        'cara_bayar',
         'bukti_transfer',
         'statusverifikasi_id',
         'status_id',
-        'rekening_id'
+        'rekening_id',
+        'bayar_id',
+        'keuangan_id',
+        'expedisi_id',
+
     ];
 
+    public function expedisi()
+    {
+        return $this->belongsTo(Expedisi::class);
+    }
     public function statusverifikasi()
     {
         return $this->belongsTo(Statusverifikasi::class);
     }
 
-    public function norekening()
+    public function status()
+    {
+        return $this->belongsTo(Status::class);
+    }
+
+    public function bayar()
+    {
+        return $this->belongsTo(Bayar::class);
+    }
+
+
+    public function rekening()
     {
         return $this->belongsTo(Rekening::class);
     }
@@ -40,13 +60,7 @@ class Pesanan extends Model
 
     public function pembeli()
     {
-        return $this->belongsTo(Pembeli::class,'pembeli_id');
-    }
-
-
-    public function rekening()
-    {
-        return $this->belongsTo(Rekening::class, 'rekening_id');
+        return $this->belongsTo(Pembeli::class);
     }
 
     public function user()

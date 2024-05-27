@@ -17,8 +17,9 @@ class PasswordController extends Controller
     public function edit()
     {
         $user = auth()->user();
-        $hideTitle = true; 
-        return view('password.update', compact('user', 'hideTitle'));
+        $hideTitle = true;
+        return view('password.update',['title' => 'change password', 'users' => $user]);
+
     }
 
     public function update(Request $request)

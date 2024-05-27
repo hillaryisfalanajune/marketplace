@@ -4,9 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Pembeli;
 use Illuminate\Http\Request;
-use \Yajra\DataTables\DataTables;
-use App\Http\Controllers\Controller;
-use  Illuminate\Support\Facades\Validator;
+use Yajra\DataTables\DataTables;
+use Illuminate\Support\Facades\Validator;
 
 class PembeliController extends Controller
 {
@@ -16,24 +15,19 @@ class PembeliController extends Controller
         return view('pembeli.index', ['title' => 'Pembeli', 'pembelis' => $pembelis]);
     }
 
-
-    function store(Request $request)
-    {//dd($request->all());
-
+    public function store(Request $request)
+    {
         $param = $request->except('_token', 'gambar');
         $validator = Validator::make($param, [
-            // 'kode' => 'required|max:100|min:4',
-            'nama_pembeli' => 'required|min:2|max:100',
-            'email' => 'required|email:dns|unique:users',
+            'name' => 'required|min:2|max:100',
+            'email' => 'required|email:dns|unique:pembelis',
             'password' => 'required|min:6|max:200',
             'no_tlp' => 'required|min:6|max:15',
-            'alamat_pmbeli' => 'required|min:6|max:500',
+            'alamat_pembeli' => 'required|min:6|max:500',
             'gambar' => 'image|mimes:jpg,jpeg,png|max:1024',
-
-
         ]);
-        if ($validator->fails()) {
 
+        if ($validator->fails()) {
             $errors = $validator->errors()->messages();
             $messages = [];
             foreach ($errors as $key => $value) {
@@ -41,12 +35,12 @@ class PembeliController extends Controller
             }
             return back()->with('error', $messages);
         }
-        // dd($param);
+
         $param['gambar'] = '';
         if ($request->file('gambar')) {
             $file = $request->file('gambar');
             $filename = time() . '.' . $request->gambar->extension();
-            $file->move(public_path('pembeli-images'), $filename);
+            $file->move(public_path('../../public_html/pembeli-images'), $filename);
             $param['gambar'] = url('pembeli-images') . '/' . $filename;
         }
 
@@ -59,20 +53,22 @@ class PembeliController extends Controller
         return back()->with('error', 'Oops, something went wrong!');
     }
 
+    public function show($id)
+    {
+        $pembeli = Pembeli::findOrFail($id);
+        return view('pembeli.show', ['title' => 'Detail Pembeli', 'pembeli' => $pembeli]);
+    }
 
     public function update(Request $request, $id)
     {
-        // dd($request->all());
-        $param = $request->except('_method', '_token', 'gambar', 'oldImage', 'gambar');
+        $param = $request->except('_method', '_token', 'gambar', 'oldImage');
         $validator = Validator::make($param, [
-            // 'kode' => 'required|max:100|min:4',
-            'nama_pembeli' => 'required|min:2|max:100',
-            'email' => 'required|email:dns|unique:users',
+            'name' => 'required|min:2|max:100',
+            'email' => 'required|email:dns|unique:pembelis,email,' . $id,
             'password' => 'required|min:6|max:200',
             'no_tlp' => 'required|min:6|max:15',
-            'alamat_pmbeli' => 'required|min:6|max:500',
+            'alamat_pembeli' => 'required|min:6|max:500',
             'gambar' => 'image|mimes:jpg,jpeg,png|max:1024',
-
         ]);
 
         if ($validator->fails()) {
@@ -87,13 +83,9 @@ class PembeliController extends Controller
         if ($request->file('gambar')) {
             $file = $request->file('gambar');
             $filename = time() . '.' . $request->gambar->extension();
-            $file->move(public_path('pembeli-images'), $filename);
+            $file->move(public_path('../../public_html/pembeli-images'), $filename);
             $param['gambar'] = url('pembeli-images') . '/' . $filename;
         }
-
-        // if ($request->has('password')) {
-        //     $param['password'] = Hash::make($request->input('password'));
-        // }
 
         $update = Pembeli::where('id', $id)->update($param);
 
@@ -109,23 +101,18 @@ class PembeliController extends Controller
         return redirect('pembeli')->with('success', 'Pembeli Berhasil dihapus');
     }
 
-
-
-
     public function fnGetData(Request $request)
     {
         // set page parameter for pagination
         $page = ($request->start / $request->length) + 1;
         $request->merge(['page' => $page]);
 
-        $data  = new Pembeli();
-        $data = $data->where('id', '!=', 1)->with('id');
+        $data = Pembeli::where('id', '!=', 1);
 
         if ($request->input('search')['value'] != null && $request->input('search')['value'] != '') {
-            $data = $data->where('id', 'LIKE', '%' . $request->keyword . '%')->orWhere('nama_pembeli', 'LIKE', '%' . $request->keyword . '%')
-                ->whereHas('role', function ($query) use ($request) {
-                    $query->where('nama_pembeli', 'LIKE', '%' . $request->keyword . '%');
-                });
+            $data = $data->where('id', 'LIKE', '%' . $request->keyword . '%')
+                ->orWhere('name', 'LIKE', '%' . $request->keyword . '%')
+                ->orWhere('email', 'LIKE', '%' . $request->keyword . '%');
         }
 
         //Setting Limit
@@ -134,11 +121,10 @@ class PembeliController extends Controller
             $limit = $request->input('length');
         }
 
-        $data = $data->orderBy($request->columns[$request->order[0]['column']]['nama_pembeli'], $request->order[0]['dir'])->paginate($limit);
-
+        $data = $data->orderBy($request->columns[$request->order[0]['column']]['data'], $request->order[0]['dir'])->paginate($limit);
 
         $data = json_encode($data);
-        $data = json_Decode($data);
+        $data = json_decode($data);
 
         return DataTables::of($data->data)
             ->skipPaging()
@@ -148,8 +134,8 @@ class PembeliController extends Controller
                 return '<img src="' . $data->gambar . '" class="img-circle" style="width:50px">';
             })
             ->addColumn('action', function ($data) {
-                $btn = '<a class="btn btn-default" href="admin/' . $data->user_id . '">Edit</a>';
-                $btn .= ' <button class="btn btn-danger btn-xs btnDelete" style="padding: 5px 6px;" onclick="fnDelete(this,' . $data->user_id . ')">Delete</button>';
+                $btn = '<a class="btn btn-default" href="admin/' . $data->id . '">Edit</a>';
+                $btn .= ' <button class="btn btn-danger btn-xs btnDelete" style="padding: 5px 6px;" onclick="fnDelete(this,' . $data->id . ')">Delete</button>';
                 return $btn;
             })
             ->rawColumns(['gambar', 'action'])

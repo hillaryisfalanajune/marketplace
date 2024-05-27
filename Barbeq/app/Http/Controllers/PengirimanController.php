@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-
+use App\Models\Expedisi;
 use App\Models\Pesanan;
 use App\Models\Status;
 use App\Models\Statusverifikasi;
@@ -15,40 +15,50 @@ use Yajra\DataTables\DataTables;
 class PengirimanController extends Controller
 {
     public function index(Request $request)
-{
-    $user = auth()->user();
+    {
+        $user = auth()->user();
 
-    if ($user->isadmin) {
-        $pengirimans = Pesanan::where('statusverifikasi_id', 2)->get();
-    } else {
         $pengirimans = Pesanan::where('user_id', $user->id)
-                               ->where('statusverifikasi_id', 2)
-                               ->get();
+            ->where(function ($query) {
+                $query->where('bayar_id', 1)->where('statusverifikasi_id', [0, 1])
+                    ->orWhere(function ($query) {
+                        $query->where('bayar_id', 2)->where('statusverifikasi_id', 2);
+                    });
+            })
+            ->get();
+
+        return view('pengiriman.index', [
+            'title' => 'Pengiriman',
+            'pengirimans' => $pengirimans,
+            'pesanans' => Pesanan::all(),
+            'pembelis' => Pembeli::all(),
+            'statuss' => Status::all(),
+            'statusverifikasis' => Statusverifikasi::all(),
+            'users' => User::all(),
+            'expedisis' => Expedisi::all()
+        ]);
     }
 
-    return view('pengiriman.index', [
-        'title' => 'Pengiriman',
-        'pengirimans' => $pengirimans,
-        'pesanans' => Pesanan::all(),
-        'pembelis' => Pembeli::all(),
-        'statuss' => Status::all(),
-        'statusverifikasis' => Statusverifikasi::all(),
-        'users' => User::all()
-    ]);
-}
-
-
-
+    public function show($id)
+    {
+        $pesanan = Pesanan::with(['produk', 'pembeli', 'statusverifikasi', 'user', 'bayar', 'status', 'expedisi',])->findOrFail($id);
+        return view('pengiriman.show', ['title' => 'Detail Pengiriman', 'pesanan' => $pesanan]);
+    }
 
     function store(Request $request)
     {
         $param = $request->except('_token', 'gambar');
         $validator = Validator::make($param, [
-
-            'status_id' => 'required',
+            'harga' => 'required',
+            'jumlah_produk' => 'required',
             'pembeli_id' => 'required',
-            'user_id' => 'required',
-            'status_id' => '',
+            'harga' => 'required',
+            'jumlah_produk' => 'required',
+            'alamat' => 'required',
+            'status_id' => 'exists:statuss,id',
+            'bayar_id' => 'required',
+            'statusverifikasi_id' =>'exists:statusverifikasis,id',
+            'Expedisi_id' =>'required',
 
 
         ]);
@@ -76,7 +86,6 @@ class PengirimanController extends Controller
             return redirect('pengiriman')->with('success', 'pengiriman Created');
         }
         return back()->with('error', 'Oops, something went wrong!');
-
     }
 
     public function updateStatus(Request $request, $id)
@@ -134,5 +143,4 @@ class PengirimanController extends Controller
             ->rawColumns(['gambar', 'action'])
             ->make(true);
     }
-
 }

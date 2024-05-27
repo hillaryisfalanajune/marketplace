@@ -21,7 +21,6 @@ class Pembeli extends Authenticatable implements JWTSubject
         'no_tlp',
         'alamat_pembeli',
         'gambar',
-        'token'
 
     ];
 

@@ -3,14 +3,12 @@
 namespace App\Http\Controllers;
 use Yajra\DataTables\DataTables;
 use App\Http\Controllers\Controller;
-use App\Models\Kategori;
-use App\Models\Produk;
+use App\Models\Expedisi;
+use App\Models\Pesanan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-// use App\Http\Requests\StoreKategoriRequest;
-// use App\Http\Requests\UpdateKategoriRequest;
 
-class KategoriController extends Controller
+class ExpedisiController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -19,19 +17,20 @@ class KategoriController extends Controller
      */
     public function index()
     {
-
-        return view('produk.index');
-
-
+        $expedisis = Expedisi::all();
+        return view('expedisi.index', [
+            'title' => 'Expedisi',
+            'expedisis' => $expedisis,
+        ]);
     }
+
 
 
     public function create()
     {
 
-        return view('kategori.create', ['title' => 'Tambah Kategori produk','kategoris' => Kategori::all(), 'produks' => produk::all()]);
-        // $produk = Produk::all();
-        // return view('produk.create', ['kategoris' => $kategori]);
+        return view('expedisi.create', ['title' => 'Tambah Expedisi','expedisis' => Expedisi::all()]);
+
 
 
     }
@@ -40,8 +39,8 @@ class KategoriController extends Controller
     {
         $param = $request->except('_token', 'gambar');
         $validator = Validator::make($param, [
-            'kode' => 'required',
-            'kategori' => 'required',
+            'expedisi' => 'required',
+            'harga' => 'required',
 
         ]);
         if ($validator->fails()) {
@@ -53,15 +52,22 @@ class KategoriController extends Controller
             }
             return back()->with('error', $messages);
         }
-      
-        $create = Kategori::create($param);
+
+        $create = Expedisi::create($param);
 
         if ($create) {
-            return redirect('produk')->with('success', 'Kategori Created');
+            return redirect('expedisi')->with('success', 'expedisi Created');
         }
         return back()->with('error', 'Oops, something went wrong!');
     }
 
+
+ 
+    public function destroy($id)
+    {
+        Expedisi::where('id', $id)->delete();
+        return redirect('expedisi')->with('success', 'Expedisi Berhasil dibatalkan');
+    }
 
     public function fnGetData(Request $request)
     {
@@ -69,13 +75,13 @@ class KategoriController extends Controller
         $page = ($request->start / $request->length) + 1;
         $request->merge(['page' => $page]);
 
-        $data  = new Kategori();
+        $data  = new Expedisi();
         $data = $data->where('id', '!=', 1)->with('id');
 
         if ($request->input('search')['value'] != null && $request->input('search')['value'] != '') {
-            $data = $data->where('kode', 'LIKE', '%' . $request->keyword . '%')->orWhere('kategori', 'LIKE', '%' . $request->keyword . '%')
+            $data = $data->where('kode', 'LIKE', '%' . $request->keyword . '%')->orWhere('expedisi', 'LIKE', '%' . $request->keyword . '%')
                 ->whereHas('role', function ($query) use ($request) {
-                    $query->where('kategori', 'LIKE', '%' . $request->keyword . '%');
+                    $query->where('expedisi', 'LIKE', '%' . $request->keyword . '%');
                 });
         }
 
@@ -85,7 +91,7 @@ class KategoriController extends Controller
             $limit = $request->input('length');
         }
 
-        $data = $data->orderBy($request->columns[$request->order[0]['column']]['kategori'], $request->order[0]['dir'])->paginate($limit);
+        $data = $data->orderBy($request->columns[$request->order[0]['column']]['expedisi'], $request->order[0]['dir'])->paginate($limit);
 
 
         $data = json_encode($data);
