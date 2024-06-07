@@ -152,32 +152,44 @@ class AllController extends Controller
         return view('all.show', ['title' => 'Detail Pesanan', 'pesanan' => $pesanan]);
     }
 
-    public function fnGetData(Request $request)
-    {
-        // set page parameter for pagination
-        $page = ($request->start / $request->length) + 1;
-        $request->merge(['page' => $page]);
+     public function fnGetData(Request $request)
+{
+    // set page parameter for pagination
+    $page = ($request->start / $request->length) + 1;
+    $request->merge(['page' => $page]);
 
-        $data = Pesanan::query();
+    $data = Pesanan::where('id', '!=', 1)->with(['produk', 'pembeli', 'statusverifikasi', 'rekening', 'bayar', 'status', 'user']);
 
-        if ($request->input('search')['value'] != null && $request->input('search')['value'] != '') {
-            $data = $data->where('id', 'LIKE', '%' . $request->keyword . '%')
-                ->orWhere('produk_id', 'LIKE', '%' . $request->keyword . '%')
-                ->orWhere('pembeli_id', 'LIKE', '%' . $request->keyword . '%')
-                ->orWhere('user_id', 'LIKE', '%' . $request->keyword . '%');
-        }
-
-        //Setting Limit
-        $limit = 10;
-        if (!empty($request->input('length'))) {
-            $limit = $request->input('length');
-        }
-
-        $data = $data->orderBy($request->columns[$request->order[0]['column']]['name'], $request->order[0]['dir'])
-            ->paginate($limit);
-
-        return DataTables::of($data)
-            ->skipPaging()
-            ->make(true);
+    if ($request->input('search')['value'] != null && $request->input('search')['value'] != '') {
+        $keyword = $request->input('search')['value'];
+        $data = $data->where('id', 'LIKE', '%' . $keyword . '%')
+            ->orWhereHas('user', function ($query) use ($keyword) {
+                $query->where('name', 'LIKE', '%' . $keyword . '%');
+            })->orWhereHas('pembeli', function ($query) use ($keyword) {
+                $query->where('name', 'LIKE', '%' . $keyword . '%');
+            })->orWhereHas('produk', function ($query) use ($keyword) {
+                $query->where('nama_produk', 'LIKE', '%' . $keyword . '%');
+            })->orWhereHas('statusverifikasi', function ($query) use ($keyword) {
+                $query->where('statusverifikasi', 'LIKE', '%' . $keyword . '%');
+            })->orWhereHas('status', function ($query) use ($keyword) {
+                $query->where('status', 'LIKE', '%' . $keyword . '%');
+            })->orWhereHas('bayar', function ($query) use ($keyword) {
+                $query->where('cara_bayar', 'LIKE', '%' . $keyword . '%');
+            });
     }
+
+
+    //Setting Limit
+    $limit = 10;
+    if (!empty($request->input('length'))) {
+        $limit = $request->input('length');
+    }
+
+    $data = $data->orderBy($request->columns[$request->order[0]['column']]['name'], $request->order[0]['dir'])
+        ->paginate($limit);
+
+    return DataTables::of($data)
+        ->skipPaging()
+        ->make(true);
+}
 }

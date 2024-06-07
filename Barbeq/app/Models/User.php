@@ -55,13 +55,20 @@ class User extends Authenticatable
         return $this->hasMany(produk::class);
     }
 
-    public function kategori()
+  public function kategoris()
     {
         return $this->hasMany(Kategori::class);
     }
     public function rekenings()
     {
         return $this->hasMany(Rekening::class);
+    }
+    
+    
+
+    public function pesanan()
+    {
+        return $this->hasMany(Pesanan::class);
     }
 
     public function getJWTIdentifier()

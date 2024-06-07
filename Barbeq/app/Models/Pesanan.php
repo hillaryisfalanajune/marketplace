@@ -12,6 +12,7 @@ class Pesanan extends Model
     protected $fillable = [
         'gambar',
         'gambar2',
+        'gambar3',
         'harga',
         'alamat',
         'jumlah_produk',

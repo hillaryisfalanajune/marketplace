@@ -6,9 +6,8 @@ namespace App\Http\Controllers;
 use \Yajra\DataTables\DataTables;
 use App\Http\Controllers\Controller;
 // use Illuminate\Http\Request;
-use App\Models\kategori;
-// use App\Models\Produk;
-
+use App\Models\Kategori;
+use App\Models\User;
 use App\Models\Produk;
 use App\Services\Gateway;
 use Illuminate\Http\Request;
@@ -21,26 +20,37 @@ class ProdukController extends Controller
 {
 
     public function index()
-    {
+{
+    $users = User::all(); // Mendapatkan semua pengguna
 
-        if (auth()->user()->isadmin) {
-            $produks = Produk::all();
-        }
 
-        else {
-            $produks = Produk::where('user_id', auth()->id())->get();
-        }
-
-        return view('produk.index', ['title' => 'Produk', 'produks' => $produks]);
+    if (auth()->user()->isadmin) {
+        $produks = Produk::all();
+    } else {
+        $produks = Produk::where('user_id', auth()->id())->get();
     }
 
+    return view('produk.index', [
+        'title' => 'Produk',
+        'produks' => $produks,
+        'users' => $users
+    ]);
+}
 
 
-    public function create()
-    {
-        return view('produk.create', ['title' => 'Tambah Produk', 'produks' => produk::all(), 'kategoris' => Kategori::all()]);
 
-    }
+
+public function create()
+{
+    // Ambil kategori yang dimiliki oleh user yang sedang login
+    $kategoris = auth()->user()->kategoris;
+
+    return view('produk.create', [
+        'title' => 'Tambah Produk',
+        'kategoris' => $kategoris,
+    ]);
+}
+
 
     function store(Request $request)
     {//dd($request->all());
@@ -118,7 +128,7 @@ class ProdukController extends Controller
         if ($request->file('gambar')) {
             $file = $request->file('gambar');
             $filename = time() . '.' . $request->gambar->extension();
-            $file->move(public_path('../../public_html/produk-images'), $filename);
+            $file->move(public_path('produk-images'), $filename);
             $param['gambar'] = url('produk-images') . '/' . $filename;
         }
 
@@ -156,12 +166,14 @@ class ProdukController extends Controller
         $data  = new Produk();
         $data = $data->where('id', '!=', 1)->with('id');
 
-        if ($request->input('search')['value'] != null && $request->input('search')['value'] != '') {
-            $data = $data->where('kode', 'LIKE', '%' . $request->keyword . '%')->orWhere('nama_produk', 'LIKE', '%' . $request->keyword . '%')
-                ->whereHas('role', function ($query) use ($request) {
-                    $query->where('nama_produk', 'LIKE', '%' . $request->keyword . '%');
-                });
-        }
+       if ($request->input('search')['value'] != null && $request->input('search')['value'] != '') {
+        $keyword = $request->input('search')['value'];
+        $data = $data->where(function($query) use ($keyword) {
+            $query->where('kode', 'LIKE', '%' . $keyword . '%')
+                ->orWhere('nama_produk', 'LIKE', '%' . $keyword . '%')
+                ->orWhere('harga', $keyword);
+        });
+    }
 
         //Setting Limit
         $limit = 10;

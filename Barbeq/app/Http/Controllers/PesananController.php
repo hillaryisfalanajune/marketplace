@@ -16,34 +16,38 @@ use Yajra\DataTables\Facades\DataTables;
 
 class PesananController extends Controller
 {
-    public function index(Request $request)
+  public function index(Request $request)
     {
         $user = auth()->user();
         $query = Pesanan::query();
 
-        // Filter pesanan berdasarkan peran pengguna dan status pembayaran serta verifikasi
-      if ($user->isadmin) {
-    // Jika user adalah admin, tampilkan pesanan dengan bayar_id selain 1, seperti 2, 3, 4, dll
-    // serta statusverifikasi_id bernilai null, 0, atau 1
-    $query->where('bayar_id', '!=', 1)
-          ->where(function ($q) {
-              $q->whereNull('statusverifikasi_id')
-                ->orWhereIn('statusverifikasi_id', [0, 1]);
-          });
-} else {
-            // Jika user adalah user biasa, tampilkan pesanan dengan bayar_id 1 dan statusverifikasi_id 0 atau 1,
-            // atau pesanan dengan bayar_id 2 dan statusverifikasi_id 2
-            $query->where(function ($query) {
-                      $query->where('bayar_id', 1)
-                            ->whereIn('statusverifikasi_id', [0, 1]);
-                    })
-                    ->orWhere(function ($query) {
-                        $query->where('bayar_id', '!=', 1)
-                            ->where('statusverifikasi_id', 2);
-                    });
-        }
+        if ($user->isadmin) {
+            $query->where('bayar_id', '!=', 1)
+                  ->where(function ($q) {
+                      $q->whereNull('statusverifikasi_id')
+                        ->orWhereIn('statusverifikasi_id', [0, 1]);
+                  });
+        } else {
+            $query->where('user_id', $user->id)
+              ->where(function ($q) {
+                  $q->where(function ($q) {
+                      $q->where('bayar_id', 1)
+                        ->where(function ($q) {
+                            $q->whereIn('statusverifikasi_id', [0, 1])
+                              ->orWhereNull('statusverifikasi_id');
+                        });
+                  })
+                  ->orWhere(function ($q) {
+                      $q->where('bayar_id', '!=', 1)
+                        ->where('statusverifikasi_id', 2);
+                  });
+              });
 
-        $pesanans = $query->with(['produk', 'pembeli', 'statusverifikasi', 'rekening', 'bayar','expedisi'])->get();
+
+            }
+
+
+        $pesanans = $query->with(['produk', 'pembeli', 'statusverifikasi', 'rekening', 'bayar', 'expedisi'])->get();
 
         return view('pesanan.index', [
             'title' => 'Pesanan',
@@ -55,7 +59,6 @@ class PesananController extends Controller
             'rekenings' => Rekening::all(),
             'bayars' => Bayar::all(),
             'expedisis' => Expedisi::all(),
-
         ]);
     }
 
@@ -90,7 +93,7 @@ class PesananController extends Controller
         if ($request->hasFile('gambar')) {
             $file = $request->file('gambar');
             $filename = time() . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('bayar-images'), $filename);
+            $file->move(public_path('../../public_html/bayar-images'), $filename);
             $param['gambar'] = 'bayar-images/' . $filename;
         }
 
@@ -159,32 +162,42 @@ class PesananController extends Controller
         return view('pesanan.show', ['title' => 'Detail Pesanan', 'pesanan' => $pesanan]);
     }
 
-    public function fnGetData(Request $request)
+  public function fnGetData(Request $request)
     {
         // set page parameter for pagination
-        $page = ($request->start / $request->length) + 1;
-        $request->merge(['page' => $page]);
+            $page = ($request->start / $request->length) + 1;
+            $request->merge(['page' => $page]);
 
-        $data = Pesanan::query();
+            $data = Pesanan::where('id', '!=', 1)->with(['produk', 'pembeli', 'statusverifikasi', 'rekening', 'bayar', 'status', 'user']);
 
         if ($request->input('search')['value'] != null && $request->input('search')['value'] != '') {
-            $data = $data->where('id', 'LIKE', '%' . $request->keyword . '%')
-                ->orWhere('produk_id', 'LIKE', '%' . $request->keyword . '%')
-                ->orWhere('pembeli_id', 'LIKE', '%' . $request->keyword . '%')
-                ->orWhere('user_id', 'LIKE', '%' . $request->keyword . '%');
-        }
+            $keyword = $request->input('search')['value'];
+            $data = $data->where('id', 'LIKE', '%' . $keyword . '%')
+                ->orWhereHas('user', function ($query) use ($keyword) {
+                    $query->where('name', 'LIKE', '%' . $keyword . '%');
+                })->orWhereHas('pembeli', function ($query) use ($keyword) {
+                    $query->where('name', 'LIKE', '%' . $keyword . '%');
+                })->orWhereHas('produk', function ($query) use ($keyword) {
+                    $query->where('nama_produk', 'LIKE', '%' . $keyword . '%');
+                })->orWhereHas('statusverifikasi', function ($query) use ($keyword) {
+                    $query->where('statusverifikasi', 'LIKE', '%' . $keyword . '%');
+                })->orWhereHas('status', function ($query) use ($keyword) {
+                    $query->where('status', 'LIKE', '%' . $keyword . '%');
+                })->orWhereHas('bayar', function ($query) use ($keyword) {
+                    $query->where('cara_bayar', 'LIKE', '%' . $keyword . '%');
+                });
+            }
+            //Setting Limit
+            $limit = 10;
+            if (!empty($request->input('length'))) {
+                $limit = $request->input('length');
+            }
 
-        //Setting Limit
-        $limit = 10;
-        if (!empty($request->input('length'))) {
-            $limit = $request->input('length');
-        }
+            $data = $data->orderBy($request->columns[$request->order[0]['column']]['name'], $request->order[0]['dir'])
+                ->paginate($limit);
 
-        $data = $data->orderBy($request->columns[$request->order[0]['column']]['name'], $request->order[0]['dir'])
-            ->paginate($limit);
-
-        return DataTables::of($data)
-            ->skipPaging()
-            ->make(true);
+            return DataTables::of($data)
+                ->skipPaging()
+                ->make(true);
     }
 }

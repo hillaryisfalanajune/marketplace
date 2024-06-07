@@ -5,19 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class wishlist extends Model
+class Wishlist extends Model
 {
     use HasFactory;
     protected $guarded = ['id'];
     protected $table = "wishlists";
     protected $fillable = [
 
-        'nama_product',
-        'harga',
-        'gambar',
         'id_wish',
-        'user_id',
-        'penjual_id'
+        'user_id'
 
 
 

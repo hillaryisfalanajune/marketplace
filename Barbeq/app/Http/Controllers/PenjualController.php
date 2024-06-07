@@ -3,21 +3,30 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Pesanan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Yajra\DataTables\DataTables;
 
 class PenjualController extends Controller
 {
-    public function index()
+   public function index()
     {
+        // Ambil semua user yang bukan admin atau superadmin
         $users = User::where('isadmin', false)
                      ->where('issuperadmin', false)
                      ->get();
 
-        return view('penjual.index', ['title' => 'Data Penjual', 'users' => $users]);
-    }
+        // Ambil pesanan yang terkait dengan user (penjual)
+        $pesanans = Pesanan::whereIn('user_id', $users->pluck('id')->all())->get();
 
+        return view('penjual.index', [
+            'title' => 'Data Penjual',
+            'users' => $users,
+            'pesanans' => $pesanans // Kirim pesanan ke view
+        ]);
+    }
+    
     public function store(Request $request)
     {
         $param = $request->except('_token', 'gambar');
@@ -57,13 +66,36 @@ class PenjualController extends Controller
     public function show($id)
     {
         $user = User::findOrFail($id);
-        return view('penjual.show', ['title' => 'Detail Penjual', 'user' => $user]);
+        // Ambil pesanan yang terkait dengan user (penjual)
+        $pesanans = Pesanan::where('user_id', $id)->get();
+
+        // Hitung total pendapatan dari pesanan yang terkait dengan pengguna ini
+        $totalPendapatan = Pesanan::where('user_id', $id)
+            ->where(function ($query) {
+                $query->where(function ($query) {
+                    $query->where('status_id', 3)
+                        ->where('bayar_id', 1);
+                })
+                    ->orWhere(function ($query) {
+                        $query->where('status_id', 3)
+                            ->where('bayar_id', '>', 1)
+                            ->where('statusverifikasi_id', 2);
+                    });
+            })
+            ->sum('harga');
+
+        return view('penjual.show', [
+            'title' => 'Detail Penjual',
+            'user' => $user,
+            'pesanans' => $pesanans, // Kirim pesanan ke view
+            'totalPendapatan' => $totalPendapatan,
+        ]);
     }
 
     public function destroy($id)
     {
         User::where('id', $id)->delete();
-        return redirect('user')->with('success', 'Produk Berhasil dihapus');
+        return redirect('penjual')->with('success', 'Penjual Berhasil dihapus');
     }
 
     public function fnGetData(Request $request)

@@ -24,10 +24,11 @@ class KeuanganController extends Controller
 
         // Query untuk mendapatkan pesanan sesuai dengan role user
         if ($isAdmin) {
-            $pesanans = Pesanan::where('status_id', 3)
-                                ->where('bayar_id', 2)
-                                ->where('statusverifikasi_id', 2)
-                                ->get();
+           $pesanans = Pesanan::where('status_id', 3)
+    ->where('bayar_id', '>', 1) // Mengubah kondisi bayar_id dari 2 ke atas
+    ->where('statusverifikasi_id', 2)
+    ->get();
+
         } else {
             $pesanans = Pesanan::where('user_id', auth()->id())
                                 ->where('status_id', 3)
@@ -38,6 +39,60 @@ class KeuanganController extends Controller
 
         // Mengambil relasi untuk diperlihatkan di view
         $pesanans->load(['produk', 'pembeli', 'statusverifikasi', 'rekening', 'bayar', 'status', 'user', 'expedisi']);
+
+          $totalall = Pesanan::where(function ($query) {
+            $query->where(function ($query) {
+                $query->where('status_id', 3)
+                    ->where('bayar_id', 1);
+            })
+            ->orWhere(function ($query) {
+                $query->where('status_id', 3)
+                    ->where('bayar_id', '>', 1)
+                    ->where('statusverifikasi_id', 2);
+            });
+        })->sum('harga');
+
+
+        // Menghitung total pendapatan berdasarkan kondisi
+        $user_id = auth()->id();
+        $totalPendapatan = Pesanan::where('user_id', $user_id)
+            ->where(function ($query) {
+                $query->where(function ($query) {
+                    $query->where('status_id', 3)
+                        ->where('bayar_id', 1);
+                })
+                    ->orWhere(function ($query) {
+                        $query->where('status_id', 3)
+                            ->where('bayar_id', '>', 1)
+                            ->where('statusverifikasi_id', 2);
+                    });
+            })
+            ->sum('harga');
+
+
+            $user_id = auth()->id();
+            $totalcod = Pesanan::where('user_id', $user_id)
+                ->where(function ($query) {
+                    $query->where(function ($query) {
+                        $query->where('status_id', 3)
+                            ->where('bayar_id', 1);
+                    });
+
+                })
+                ->sum('harga');
+
+
+                $user_id = auth()->id();
+        $totaltransfer = Pesanan::where('user_id', $user_id)
+            ->where(function ($query) {
+                $query->where(function ($query) {
+                        $query->where('status_id', 3)
+                            ->where('bayar_id', '>', 1)
+                            ->where('statusverifikasi_id', 2);
+                    });
+            })
+            ->sum('harga');
+
 
         // Mengembalikan view bersama data yang diperlukan
         return view('keuangan.index', [
@@ -51,6 +106,10 @@ class KeuanganController extends Controller
             'bayars' => Bayar::all(),
             'statuss' => Status::all(),
             'expedisis' => Expedisi::all(),
+            'totalPendapatan' => $totalPendapatan,
+            'totalcod' => $totalcod,
+            'totaltransfer' => $totaltransfer,
+            'totalall' => $totalall,
         ]);
     }
 
@@ -203,7 +262,7 @@ class KeuanganController extends Controller
         return view('keuangan.show', ['title' => 'Detail Setoran/Pemasukan', 'pesanan' => $pesanan]);
     }
 
-    public function fnGetData(Request $request)
+      public function fnGetData(Request $request)
     {
         $page = ($request->start / $request->length) + 1;
         $request->merge(['page' => $page]);
@@ -215,8 +274,19 @@ class KeuanganController extends Controller
             $data = $data->where('id', 'LIKE', '%' . $keyword . '%')
                 ->orWhereHas('user', function ($query) use ($keyword) {
                     $query->where('name', 'LIKE', '%' . $keyword . '%');
+                })->orWhereHas('pembeli', function ($query) use ($keyword) {
+                    $query->where('name', 'LIKE', '%' . $keyword . '%');
+                })->orWhereHas('produk', function ($query) use ($keyword) {
+                    $query->where('nama_produk', 'LIKE', '%' . $keyword . '%');
+                })->orWhereHas('statusverifikasi', function ($query) use ($keyword) {
+                    $query->where('statusverifikasi', 'LIKE', '%' . $keyword . '%');
+                })->orWhereHas('status', function ($query) use ($keyword) {
+                    $query->where('status', 'LIKE', '%' . $keyword . '%');
+                })->orWhereHas('bayar', function ($query) use ($keyword) {
+                    $query->where('cara_bayar', 'LIKE', '%' . $keyword . '%');
                 });
         }
+
 
         $limit = 10;
         if (!empty($request->input('length'))) {

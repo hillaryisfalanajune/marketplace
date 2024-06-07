@@ -68,6 +68,30 @@ class ExpedisiController extends Controller
         Expedisi::where('id', $id)->delete();
         return redirect('expedisi')->with('success', 'Expedisi Berhasil dibatalkan');
     }
+    
+      public function edit($id)
+    {
+        $expedisi = Expedisi::findOrFail($id);
+        return view('expedisi.update', ['title' => 'Edit expedisi ' . $expedisi->id, 'expedisi' => $expedisi]);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $param = $request->except('_method', '_token', 'gambar', 'oldImage');
+        $validator = Validator::make($param, [
+              'expedisi' => 'required',
+              'harga' => 'required',
+        ]);
+
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput();
+        }
+
+        Expedisi::where('id', $id)->update($param);
+
+        return redirect('expedisi')->with('success', 'expedisi Updated');
+    }
+    
 
     public function fnGetData(Request $request)
     {
