@@ -11,18 +11,32 @@ use Illuminate\Support\Facades\Validator;
 
 class ProdukController extends Controller
 {
-   public function index()
+   public function index(Request $request)
 {
-    $data = Produk::select('produks.*', 'kategoris.kategori')
-                    ->join('kategoris', 'produks.kategori_id', '=', 'kategoris.id')
-                    ->get();
+    // Get the search term from the request
+    $search = $request->input('search');
 
+    // Build the query
+    $query = Produk::select('produks.*', 'kategoris.kategori')
+                    ->join('kategoris', 'produks.kategori_id', '=', 'kategoris.id');
+
+    // Add search conditions if a search term is provided
+    if ($search) {
+        $query->where('produks.nama_produk', 'LIKE', "%{$search}%")
+              ->orWhere('kategoris.kategori', 'LIKE', "%{$search}%");
+    }
+
+    // Execute the query
+    $data = $query->get();
+
+    // Return the response
     return response()->json([
         'status' => true,
         'message' => 'Data diterima',
         'data' => $data
     ], 200);
 }
+
 
     public function kategori()
     {
@@ -35,7 +49,7 @@ class ProdukController extends Controller
         ],200
         );
     }
-    
+
     public function store(Request $request)
     {
         // dd($request->all());
@@ -100,7 +114,7 @@ class ProdukController extends Controller
             ]);
 
         }
-       
+
         $rules = [
             "kode" => "required",
             "nama_produk" => "required",
@@ -134,7 +148,7 @@ class ProdukController extends Controller
 
 
     }
-    
+
     public function search(Request $request)
 {
     $query = $request->input('query');
