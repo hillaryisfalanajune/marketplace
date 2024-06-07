@@ -18,6 +18,10 @@ class PesananController extends Controller
     {
         try {
             // Check if the token is present
+
+
+            // Extract the token from the request headers
+            $token = $request->header('Authorization');
             if (!$request->header('Authorization')) {
                 return response()->json([
                     'status' => false,
@@ -25,18 +29,15 @@ class PesananController extends Controller
                 ], 401);
             }
 
-            // Extract the token from the request headers
-            $token = $request->header('Authorization');
-            
             // Decode the token to extract user information
             $decodedToken = JWTAuth::decode(JWTAuth::getToken());
-            
+
             // Extract user ID from decoded token payload
             $userId = $decodedToken['sub'];
-            
+
             // Find the user's orders by user ID, including related product and pembeli data
             $data = Pesanan::where('pembeli_id', $userId)->with(['produk', 'pembeli','expedisi'])->get();
-            
+
             return response()->json([
                 'status' => true,
                 'message' => 'Data diterima',
@@ -65,7 +66,7 @@ class PesananController extends Controller
             $decodedToken = JWTAuth::decode(JWTAuth::getToken());
             $userId = $decodedToken['sub'];
             $user = Pembeli::find($userId);
-            
+
             if (!$user) {
                 return response()->json([
                     "status" => false,
@@ -137,13 +138,8 @@ class PesananController extends Controller
 
             // Validate the request data
             $rules = [
-                "produk_id" => "",
-                "alamat" => "",
-                "user_id" => "",
-                "bayar_id" => "",
                 "status_id" => "",
-                "expedisi_id" => "",
-                "harga" => ""
+
             ];
             $validator = Validator::make($request->all(), $rules);
             if ($validator->fails()) {
@@ -155,27 +151,12 @@ class PesananController extends Controller
             }
 
             // Handle the file upload if present
-            $buktiTransferPath = $pesanan->gambar;
-            if ($request->cara_bayar != '1' && $request->hasFile('gambar')) {
-                $buktiTransferFile = $request->file('gambar');
-                $buktiTransferFilename = pathinfo($buktiTransferFile->getClientOriginalName(), PATHINFO_FILENAME);
-                $extension = $buktiTransferFile->getClientOriginalExtension();
-                $buktiTransferFilename = $buktiTransferFilename . '_' . time() . '.' . $extension;
-                $buktiTransferFile->move(public_path('../../public_html/pesanan-images'), $buktiTransferFilename);
-                $websiteUrl = url('/');
-                $buktiTransferPath = $websiteUrl . '/pesanan-images/' . $buktiTransferFilename;
-            }
 
             // Update the order data
             $pesanan->update([
-                "produk_id" => $request->produk_id,
-                "alamat" => $request->alamat,
-                "user_id" => $request->user_id,
-                "gambar" => $buktiTransferPath,
-                "bayar_id" => $request->bayar_id,
+
                 "status_id" => $request->status_id,
-                "expedisi_id" => $request->expedisi_id,
-                "harga" => $request->harga
+
             ]);
 
             return response()->json([
